@@ -1,59 +1,29 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    treefmt-nix.url = "github:numtide/treefmt-nix";
+    treefmt-nix.inputs.nixpkgs.follows = "nixpkgs";
   };
-  outputs = { nixpkgs, ... }:
-    let
-      systems = nixpkgs.lib.platforms.all;
-      eachSystem = f: nixpkgs.lib.genAttrs systems (system: f nixpkgs.legacyPackages.${system});
-      darwin = nixpkgs.lib.platforms.darwin;
-      eachDarwinSystem = f: nixpkgs.lib.genAttrs darwin (system: f nixpkgs.legacyPackages.${system});
-    in
-    {
-      overlays.default = import ./overlays/firefox-bin.nix;
-      formatter = eachSystem (pkgs: pkgs.nixpkgs-fmt);
-      packages = eachDarwinSystem (pkgs: rec {
-        default = firefox-bin;
-        firefox-bin = pkgs.callPackage ./packages/firefox-bin { };
-      });
-      darwinModules.home-manager = import ./modules/home-manager.nix;
-      devShells = eachSystem (pkgs:
-        let
-          manifest = "./packages/firefox-bin/firefox.json";
-          latest-firefox-version = pkgs.writeShellScriptBin "latest-firefox-version" ''
-            set -e
-            version=$(curl -s 'https://product-details.mozilla.org/1.0/firefox_versions.json' | jq -r '.LATEST_FIREFOX_VERSION')
-            echo "Last version of Firefox is $version" >&2
-            name="Firefox-$version.dmg"
-            url="https://download-installer.cdn.mozilla.net/pub/firefox/releases/$version/mac/en-GB/Firefox%20$version.dmg"
-            sha256=$(nix-prefetch-url --name $version $url)
-            echo "SHA256 of $name is $sha256" >&2
-            jq -n -r \
-              --arg version "$version" \
-              --arg sha256 "$sha256" \
-              --arg url "$url" \
-              '{version: $version, url: $url, sha256: $sha256}'
-          '';
-          ci = pkgs.writeShellScriptBin "ci" ''
-            set -e
-            latest-firefox-version > ${manifest}
-            version=$(jq -r '.version' ${manifest})
-            git config --global user.name "github-actions"
-            git config --global user.email "github-actions[bot]@users.noreply.github.com"
-            git diff --quiet || (git add ${manifest} && git commit -m "chore: bump Firefox to $version")
-            git push
-          '';
-        in
-        {
-          default = pkgs.mkShell {
-            buildInputs = with pkgs; [
-              jq
-              curl
-              git
-              latest-firefox-version
-              ci
-            ];
-          };
-        });
+  outputs = inputs: inputs.flake-parts.lib.mkFlake { inherit inputs; } {
+    systems = [
+      "aarch64-darwin"
+      "aarch64-linux"
+      "x86_64-darwin"
+      "x86_64-linux"
+    ];
+    imports = [
+      inputs.treefmt-nix.flakeModule
+      ./treefmt.nix
+    ];
+    perSystem = { system, ... }: {
+      _module.args.pkgs = import inputs.nixpkgs {
+        inherit system;
+        config = {
+          allowUnfree = true;
+          allowBroken = true;
+        };
+      };
     };
+  };
 }

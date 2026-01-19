@@ -16,6 +16,8 @@
       inputs.treefmt-nix.flakeModule
       ./treefmt.nix
       ./shell
+      ./modules/home
+      ./overlays/firefox-bin
       ./packages/firefox-bin
     ];
     perSystem = { system, ... }: {

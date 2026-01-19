@@ -2,9 +2,7 @@
   perSystem = { pkgs, ... }:
     let
       firefox = builtins.fromJSON (builtins.readFile ./firefox.json);
-    in
-    {
-      packages.firefox-bin = pkgs.stdenv.mkDerivation rec {
+      firefox-bin = pkgs.stdenv.mkDerivation rec {
         pname = "Firefox";
         version = firefox.version;
         buildInputs = [ pkgs.undmg ];
@@ -23,6 +21,12 @@
           homepage = "https://www.mozilla.org/en-GB/firefox";
           platforms = platforms.darwin;
         };
+      };
+    in
+    {
+      packages = pkgs.lib.mkIf pkgs.stdenv.isDarwin {
+        inherit firefox-bin;
+        default = firefox-bin;
       };
     };
 }

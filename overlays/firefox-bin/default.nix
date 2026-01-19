@@ -1,6 +1,6 @@
 { self', ... }:
 let
-  overlay = final: prev: {
+  overlay = _final: _prev: {
     firefox-bin = self'.packages.firefox-bin;
   };
 in

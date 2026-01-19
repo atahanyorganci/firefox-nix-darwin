@@ -1,6 +1,6 @@
 { self', ... }:
 let
-  module = { pkgs, config, lib, ... }: {
+  module = { ... }: {
     config = {
       programs.firefox = {
         package = self'.packages.firefox-bin;

@@ -16,6 +16,7 @@
       inputs.treefmt-nix.flakeModule
       ./treefmt.nix
       ./shell
+      ./packages/firefox-bin
     ];
     perSystem = { system, ... }: {
       _module.args.pkgs = import inputs.nixpkgs {
